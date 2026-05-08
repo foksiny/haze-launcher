@@ -11,9 +11,10 @@
     "preview": "electron-vite preview",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
-    "build:win": "npm run build && electron-builder --win",
-    "build:mac": "npm run build && electron-builder --mac",
-    "build:linux": "npm run build && electron-builder --linux",
+    "build:win": "npm run build && electron-builder --win nsis",
+    "build:mac": "npm run build && electron-builder --mac dmg zip",
+    "build:linux": "npm run build && electron-builder --linux AppImage deb",
+    "build:all": "npm run build && electron-builder --win nsis --mac dmg zip --linux AppImage deb",
     "lint": "eslint . --ext .ts,.tsx",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -53,5 +54,34 @@
     "typescript": "^5.8.3",
     "vite": "^6.3.3",
     "vitest": "^3.1.3"
+  },
+  "build": {
+    "appId": "com.haze.launcher",
+    "productName": "Haze",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "out/**/*"
+    ],
+    "icon": "resources/icon",
+    "win": {
+      "target": "nsis",
+      "artifactName": "${productName}-${version}-${arch}-setup.${ext}"
+    },
+    "mac": {
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "linux": {
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "category": "Game"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   }
 }

@@ -75,6 +75,11 @@ const api = {
   detectJava: () => ipcRenderer.invoke(IPC_CHANNELS.DETECT_JAVA),
   downloadJava: (majorVersion: number) => ipcRenderer.invoke(IPC_CHANNELS.DOWNLOAD_JAVA, majorVersion),
 
+  // ─── Updater ─────────────────────────────────────────
+  checkForUpdates: () => ipcRenderer.invoke('updater:check'),
+  downloadUpdate: () => ipcRenderer.invoke('updater:download-update'),
+  skipUpdate: (version: string) => ipcRenderer.invoke('updater:skip-version', version),
+
   // ─── Notifications ────────────────────────────────────
   getNotifications: () => ipcRenderer.invoke(IPC_CHANNELS.GET_NOTIFICATIONS),
 
@@ -113,6 +118,11 @@ const api = {
     const listener = (_e: any, settings: any) => callback(settings)
     ipcRenderer.on('settings-updated', listener)
     return () => { ipcRenderer.removeListener('settings-updated', listener) }
+  },
+  onUpdateAvailable: (callback: (info: any) => void) => {
+    const listener = (_e: any, info: any) => callback(info)
+    ipcRenderer.on(IPC_CHANNELS.UPDATE_AVAILABLE, listener)
+    return () => { ipcRenderer.removeListener(IPC_CHANNELS.UPDATE_AVAILABLE, listener) }
   },
 }
 

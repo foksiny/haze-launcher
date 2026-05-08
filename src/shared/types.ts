@@ -497,4 +497,5 @@ export const IPC_CHANNELS = {
   GAME_CRASHED: 'event:game-crashed',
   NOTIFICATION: 'event:notification',
   INSTANCE_UPDATED: 'event:instance-updated',
+  UPDATE_AVAILABLE: 'event:update-available',
 } as const

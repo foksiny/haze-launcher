@@ -23,6 +23,7 @@ import { ModloaderManager } from './modloaders/ModloaderManager'
 import { ModManager } from './mods/ModManager'
 import { DiscordManager } from './discord/DiscordManager'
 import { AuthlibInjectorManager } from './accounts/AuthlibInjectorManager'
+import { updater } from './updater/Updater'
 import { ProcessMonitor } from './game/ProcessMonitor'
 import { APP_NAME } from '../shared/constants'
 import { IPC_CHANNELS } from '../shared/types'
@@ -134,6 +135,12 @@ app.whenReady().then(async () => {
   })
 
   createWindow()
+
+  // Initialize updater with main window reference
+  updater.setMainWindow(mainWindow!)
+  if (settingsManager.get('checkUpdatesOnStartup')) {
+    updater.startAutoCheck(3600000) // Check every hour
+  }
 
   // Connect Discord RPC
   if (settingsManager.get('discordRpcEnabled')) {
