@@ -8,22 +8,123 @@ interface HomePageProps {
 export default function HomePage({ onNavigate }: HomePageProps) {
   const [instances, setInstances] = useState<any[]>([])
   const [activeAccount, setActiveAccount] = useState<any>(null)
+  const [accounts, setAccounts] = useState<any[]>([])
+  const [showAccountDropdown, setShowAccountDropdown] = useState(false)
+  const [javaDownload, setJavaDownload] = useState<{version: number, progress: number} | null>(null)
 
   useEffect(() => {
     window.api.getInstances().then(setInstances).catch(console.error)
-    window.api.getAccounts().then((data: any) => setActiveAccount(data.activeAccount)).catch(console.error)
+    window.api.getAccounts().then((data: any) => {
+      setActiveAccount(data.activeAccount)
+      setAccounts(data.accounts || [])
+    }).catch(console.error)
   }, [])
+
+  useEffect(() => {
+    const unsub = window.api.onJavaDownloadProgress((progress: any) => {
+      const pct = progress.totalBytes > 0 ? (progress.downloadedBytes / progress.totalBytes) * 100 : 0
+      setJavaDownload({ version: progress.version, progress: pct })
+    })
+    return unsub
+  }, [])
+
+  useEffect(() => {
+    if (!showAccountDropdown) return
+    const handleClick = () => setShowAccountDropdown(false)
+    window.addEventListener('click', handleClick)
+    return () => window.removeEventListener('click', handleClick)
+  }, [showAccountDropdown])
 
   const recentInstances = instances.slice(0, 4)
 
   return (
     <div className="page-container">
+      {javaDownload && (
+        <div style={{
+          marginBottom: 16, padding: '12px 16px', background: 'var(--bg-secondary)',
+          borderRadius: 8, border: '1px solid var(--accent)'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+            <span style={{ color: 'var(--accent)', fontWeight: 500 }}>
+              ⬇ Downloading Java {javaDownload.version}...
+            </span>
+            <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+              {javaDownload.progress.toFixed(1)}%
+            </span>
+          </div>
+          <div style={{
+            height: 6, background: 'var(--bg-primary)', borderRadius: 3, overflow: 'hidden'
+          }}>
+            <div style={{
+              height: '100%', width: `${javaDownload.progress}%`,
+              background: 'var(--accent)', transition: 'width 0.3s'
+            }} />
+          </div>
+        </div>
+      )}
       <div className="page-header">
         <div>
           <h1 className="page-title">Welcome to Haze</h1>
           <p className="page-subtitle">
             {activeAccount ? `Playing as ${activeAccount.username}` : 'Create an account to get started'}
           </p>
+        </div>
+        <div style={{ position: 'relative' }}>
+          <button 
+            className="btn btn-secondary"
+            onClick={(e) => { e.stopPropagation(); setShowAccountDropdown(!showAccountDropdown) }}
+            style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+          >
+            <span>👤</span>
+            <span>{activeAccount?.username || 'Select Account'}</span>
+            <span style={{ fontSize: 10 }}>▼</span>
+          </button>
+          {showAccountDropdown && (
+            <div className="dropdown-menu" onClick={(e) => e.stopPropagation()} style={{
+              position: 'absolute', top: '100%', right: 0, marginTop: 4,
+              background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+              borderRadius: 8, padding: 8, minWidth: 200, zIndex: 100,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+            }}>
+              {accounts.length === 0 ? (
+                <div style={{ padding: '8px 12px', color: 'var(--text-muted)', fontSize: 13 }}>
+                  No accounts yet
+                </div>
+              ) : (
+                accounts.map((acc: any) => (
+                  <div
+                    key={acc.id}
+                    className="dropdown-item"
+                    onClick={async () => {
+                      await window.api.setActiveAccount(acc.id)
+                      setActiveAccount(acc)
+                      setShowAccountDropdown(false)
+                    }}
+                    style={{
+                      padding: '8px 12px', cursor: 'pointer', borderRadius: 4,
+                      background: activeAccount?.id === acc.id ? 'var(--accent)' : 'transparent',
+                      color: activeAccount?.id === acc.id ? '#fff' : 'var(--text)',
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                    }}
+                  >
+                    <span>{acc.username}</span>
+                    {activeAccount?.id === acc.id && <span>✓</span>}
+                  </div>
+                ))
+              )}
+              <div style={{ borderTop: '1px solid var(--border)', margin: '4px 0' }} />
+              <div
+                className="dropdown-item"
+                onClick={() => { setShowAccountDropdown(false); onNavigate('accounts') }}
+                style={{
+                  padding: '8px 12px', cursor: 'pointer', borderRadius: 4,
+                  color: 'var(--accent)', fontSize: 13
+                }}
+              >
+                + Add Account
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

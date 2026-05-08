@@ -24,13 +24,11 @@ export default function StatusBar() {
   const [gameStatus, setGameStatus] = useState<string>('')
 
   useEffect(() => {
-    // Initial fetch
     window.api.getAccounts().then((data: any) => setActiveAccount(data.activeAccount))
     window.api.getInstances().then((insts: any) => {
       if (insts.length > 0) setCurrentInstance(insts[0])
     })
 
-    // Listen for instance updates or launches
     const unsubState = window.api.onGameStateChanged((state: any) => {
       setGameStatus(state.status)
       if (state.status === 'running' || state.status === 'launching' || state.status === 'downloading' || state.status === 'preparing') {
@@ -41,8 +39,13 @@ export default function StatusBar() {
       }
     })
 
+    const unsubAccount = window.api.onAccountChanged((account: any) => {
+      setActiveAccount(account)
+    })
+
     return () => {
       unsubState()
+      unsubAccount()
     }
   }, [])
 
@@ -69,7 +72,7 @@ export default function StatusBar() {
         )}
       </div>
       <div className="status-bar-group">
-        <span>Haze Launcher v1.0.0</span>
+        <span>Haze Launcher v1.0.1</span>
       </div>
     </div>
   )

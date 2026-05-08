@@ -498,4 +498,6 @@ export const IPC_CHANNELS = {
   NOTIFICATION: 'event:notification',
   INSTANCE_UPDATED: 'event:instance-updated',
   UPDATE_AVAILABLE: 'event:update-available',
+  ACCOUNT_CHANGED: 'event:account-changed',
+  JAVA_DOWNLOAD_PROGRESS: 'event:java-download-progress',
 } as const

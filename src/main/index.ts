@@ -60,6 +60,10 @@ const versionManager = new VersionManager(DATA_DIR, downloadEngine)
 const assetManager = new AssetManager(DATA_DIR, downloadEngine)
 const libraryManager = new LibraryManager(DATA_DIR, downloadEngine)
 const javaManager = new JavaManager(DATA_DIR, downloadEngine)
+javaManager.on('downloadProgress', (progress: any) => {
+  mainWindow?.webContents.send(IPC_CHANNELS.JAVA_DOWNLOAD_PROGRESS, progress)
+})
+
 const gameLauncher = new GameLauncher(DATA_DIR, versionManager, assetManager, libraryManager, javaManager, downloadEngine)
 const instanceManager = new InstanceManager(DATA_DIR)
 const accountManager = new AccountManager(DATA_DIR)
@@ -456,6 +460,8 @@ ipcMain.handle(IPC_CHANNELS.DELETE_ACCOUNT, (_e, id: string) => {
 
 ipcMain.handle(IPC_CHANNELS.SET_ACTIVE_ACCOUNT, (_e, id: string) => {
   accountManager.setActiveAccount(id)
+  const active = accountManager.getActiveAccount()
+  mainWindow?.webContents.send(IPC_CHANNELS.ACCOUNT_CHANGED, active)
 })
 
 // --- Mods ---

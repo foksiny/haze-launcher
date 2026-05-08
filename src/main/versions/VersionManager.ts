@@ -225,7 +225,7 @@ export class VersionManager {
     return new Promise((resolve, reject) => {
       https.get(
         url,
-        { headers: { 'User-Agent': 'HazeLauncher/1.0.0' }, timeout: 15000 },
+        { headers: { 'User-Agent': 'HazeLauncher/1.0.1' }, timeout: 15000 },
         (res) => {
           if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
             this.fetchJson<T>(res.headers.location).then(resolve).catch(reject)

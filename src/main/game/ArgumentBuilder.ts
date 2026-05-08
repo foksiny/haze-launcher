@@ -120,9 +120,9 @@ function filterJvmArgs(args: string[], javaMajorVersion: number): string[] {
     const arg = args[i]
     let skip = false
 
-    // Java 21+ flags
+    // Java 22+ flags (skip entirely - was removed in stable releases, use --enable-native-access instead)
     if (arg.includes('--sun-misc-unsafe-memory-access')) {
-      if (javaMajorVersion < 21) skip = true
+      skip = true
     }
 
     // Java 17+ flags
@@ -199,7 +199,25 @@ export function buildGameArguments(
     args.push('--port', String(port))
   }
 
-  return args
+  // Filter out empty quick play arguments (Minecraft 26.x rejects multiple quick play options)
+  const quickPlayFlags = ['--quickPlayPath', '--quickPlaySingleplayer', '--quickPlayMultiplayer', '--quickPlayRealms']
+  const result: string[] = []
+  let skipNext = false
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i]
+    // Skip empty strings
+    if (arg === '') continue
+    if (skipNext) {
+      skipNext = false
+      continue
+    }
+    if (quickPlayFlags.includes(arg) && args[i + 1] === '') {
+      skipNext = true
+      continue
+    }
+    result.push(arg)
+  }
+  return result
 }
 
 /**

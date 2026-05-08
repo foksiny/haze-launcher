@@ -124,6 +124,16 @@ const api = {
     ipcRenderer.on(IPC_CHANNELS.UPDATE_AVAILABLE, listener)
     return () => { ipcRenderer.removeListener(IPC_CHANNELS.UPDATE_AVAILABLE, listener) }
   },
+  onAccountChanged: (callback: (account: any) => void) => {
+    const listener = (_e: any, account: any) => callback(account)
+    ipcRenderer.on(IPC_CHANNELS.ACCOUNT_CHANGED, listener)
+    return () => { ipcRenderer.removeListener(IPC_CHANNELS.ACCOUNT_CHANGED, listener) }
+  },
+  onJavaDownloadProgress: (callback: (progress: any) => void) => {
+    const listener = (_e: any, progress: any) => callback(progress)
+    ipcRenderer.on(IPC_CHANNELS.JAVA_DOWNLOAD_PROGRESS, listener)
+    return () => { ipcRenderer.removeListener(IPC_CHANNELS.JAVA_DOWNLOAD_PROGRESS, listener) }
+  },
 }
 
 contextBridge.exposeInMainWorld('api', api)

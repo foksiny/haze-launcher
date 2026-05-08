@@ -23,7 +23,26 @@ export default function AccountsPage() {
           <h1 className="page-title">Accounts</h1>
           <p className="page-subtitle">Manage your Minecraft accounts</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowCreate(true)} id="add-account-btn">+ Add Account</button>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <select
+            className="input"
+            style={{ width: 180 }}
+            value={activeId}
+            onChange={async (e) => {
+              const id = e.target.value
+              if (id) {
+                await window.api.setActiveAccount(id)
+                setActiveId(id)
+              }
+            }}
+          >
+            <option value="">Select Account</option>
+            {accounts.map(acc => (
+              <option key={acc.id} value={acc.id}>{acc.username}</option>
+            ))}
+          </select>
+          <button className="btn btn-primary" onClick={() => setShowCreate(true)} id="add-account-btn">+ Add Account</button>
+        </div>
       </div>
 
       {accounts.length === 0 ? (

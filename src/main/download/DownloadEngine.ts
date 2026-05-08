@@ -246,6 +246,11 @@ export class DownloadEngine extends EventEmitter {
   private async isAlreadyDownloaded(item: DownloadItem): Promise<boolean> {
     if (!existsSync(item.path)) return false
 
+    if (!item.sha1 && !item.size) {
+      try { unlinkSync(item.path) } catch { /* ignore */ }
+      return false
+    }
+
     // If size is specified, check it
     if (item.size) {
       try {
@@ -275,10 +280,112 @@ export class DownloadEngine extends EventEmitter {
    * Download a single file (convenience method).
    */
   async downloadSingle(url: string, path: string, sha1?: string): Promise<void> {
-    const failed = await this.downloadBatch([{ url, path, sha1 }])
-    if (failed.length > 0) {
-      throw new Error(`Failed to download: ${url}`)
+    for (let attempt = 0; attempt < MAX_DOWNLOAD_RETRIES; attempt++) {
+      try {
+        if (existsSync(path)) {
+          try { unlinkSync(path) } catch { /* ignore */ }
+        }
+        await this.downloadFileWithRetry(url, path, sha1)
+        return
+      } catch (err) {
+        if (attempt < MAX_DOWNLOAD_RETRIES - 1) {
+          logger.warn(
+            'DownloadEngine',
+            `Download failed (attempt ${attempt + 1}/${MAX_DOWNLOAD_RETRIES}): ${url}`,
+            err instanceof Error ? err.message : err
+          )
+          await sleep(DOWNLOAD_RETRY_DELAY * Math.pow(2, attempt))
+        } else {
+          throw err
+        }
+      }
     }
+  }
+
+  private downloadFileWithRetry(url: string, path: string, sha1?: string): Promise<void> {
+    const startTime = Date.now()
+    return new Promise((resolve, reject) => {
+      const dir = dirname(path)
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true })
+      }
+
+      const protocol = url.startsWith('https') ? https : http
+      const request = protocol.get(
+        url,
+        {
+          headers: {
+            'User-Agent': APP_USER_AGENT,
+          },
+          timeout: 60000,
+        },
+        (response) => {
+          if (response.statusCode && response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+            this.downloadFileWithRetry(response.headers.location, path, sha1).then(resolve).catch(reject)
+            return
+          }
+
+          if (response.statusCode && response.statusCode !== 200) {
+            reject(new Error(`HTTP ${response.statusCode} for ${url}`))
+            return
+          }
+
+          const fileStream = createWriteStream(path)
+          let bytesWritten = 0
+          const hash = sha1 ? createHash('sha1') : null
+
+          response.on('data', (chunk: Buffer) => {
+            if (this.aborted) {
+              response.destroy()
+              fileStream.close()
+              return
+            }
+            bytesWritten += chunk.length
+            if (hash) hash.update(chunk)
+            const total = parseInt(response.headers['content-length'] || '0')
+            const elapsed = (Date.now() - startTime) / 1000
+            const speed = elapsed > 0 ? bytesWritten / elapsed : 0
+            this.emit('progress', {
+              downloadedBytes: bytesWritten,
+              totalBytes: total,
+              speed,
+              currentFile: url,
+            })
+          })
+
+          response.pipe(fileStream)
+
+          fileStream.on('finish', () => {
+            fileStream.close()
+
+            if (hash && sha1) {
+              readFile(path).then((data) => {
+                const computed = createHash('sha1').update(data).digest('hex')
+                if (computed !== sha1) {
+                  try { unlinkSync(path) } catch { /* ignore */ }
+                  reject(new Error(`SHA1 mismatch: expected ${sha1}, got ${computed}`))
+                } else {
+                  resolve()
+                }
+              }).catch(reject)
+            } else {
+              resolve()
+            }
+          })
+
+          fileStream.on('error', (err) => {
+            try { unlinkSync(path) } catch { /* ignore */ }
+            reject(err)
+          })
+        }
+      )
+
+      request.on('error', reject)
+      request.on('timeout', () => {
+        request.destroy()
+        reject(new Error(`Timeout downloading ${url}`))
+      })
+    })
   }
 
   /**

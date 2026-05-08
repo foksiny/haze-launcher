@@ -165,24 +165,22 @@ export function sanitizeInstanceName(name: string): string {
  * Get the required Java major version for a given Minecraft version string.
  */
 export function getRequiredJavaVersion(mcVersion: string): number {
-  // Parse version components
   const match = mcVersion.match(/^(\d+)\.(\d+)(?:\.(\d+))?/)
-  if (!match) return 8 // Legacy versions default to Java 8
+  if (!match) return 8
 
   const major = parseInt(match[1])
   const minor = parseInt(match[2])
+  const patch = match[3] ? parseInt(match[3]) : 0
 
-  // Modern Minecraft (1.17+)
   if (major === 1) {
+    if (minor >= 21 && patch >= 2) return 22
     if (minor >= 21) return 21
     if (minor >= 17) return 17
     return 8
   }
 
-  // Handle standalone modloader versions (like NeoForge)
-  // NeoForge 21.x -> 1.21 (Java 21)
-  // NeoForge 20.x or 47.x -> 1.20.x (Java 17)
-  if (major >= 21) return 21
+  if (major >= 26) return 25
+  if (major >= 21) return 22
   if (major >= 17) return 17
 
   return 8
